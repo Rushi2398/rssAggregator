@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/Rushi2398/rssAggregator/internal/auth"
 	"github.com/Rushi2398/rssAggregator/internal/database"
 	"github.com/google/uuid"
 )
@@ -35,5 +36,21 @@ func (apiCfg *apiConfig) handleCreateUser(w http.ResponseWriter, r *http.Request
 		responseWithError(w, 400, fmt.Sprintf("Couldn't create user: %s", err))
 		return
 	}
+	responseWithJSON(w, 201, databaseUserToUser(user))
+}
+
+func (apiCfg *apiConfig) handleGetUser(w http.ResponseWriter, r *http.Request) {
+	apiKey, err := auth.GetAPIKey(r.Header)
+	if err != nil {
+		responseWithError(w, 403, fmt.Sprintf("Auth Error: %v", err))
+		return
+	}
+
+	user, err := apiCfg.DB.GetUserByAPIKey(r.Context(), apiKey)
+	if err != nil {
+		responseWithError(w, 400, fmt.Sprintf("Couldn't get user: %v", err))
+		return
+	}
+
 	responseWithJSON(w, 200, databaseUserToUser(user))
 }
