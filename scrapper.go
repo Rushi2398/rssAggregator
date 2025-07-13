@@ -2,11 +2,14 @@ package main
 
 import (
 	"context"
+	"database/sql"
 	"log"
+	"strings"
 	"sync"
 	"time"
 
 	"github.com/Rushi2398/rssAggregator/internal/database"
+	"github.com/google/uuid"
 )
 
 func startScrapping(db *database.Queries, concurrency int, timeBetweenRequest time.Duration) {
@@ -18,7 +21,7 @@ func startScrapping(db *database.Queries, concurrency int, timeBetweenRequest ti
 			int32(concurrency),
 		)
 		if err != nil {
-			log.Printf("error fetching feeds: ", err)
+			log.Println("error fetching feeds: ", err)
 			continue
 		}
 
@@ -43,7 +46,32 @@ func scrapeFeed(db *database.Queries, wg *sync.WaitGroup, feed database.Feed) {
 		log.Println("Error Fetching Feeds: ", err)
 	}
 	for _, item := range rssFeed.Channel.Item {
-		log.Println("Found post: ", item.Title, "on Feed: ", feed.Name)
+		description := sql.NullString{}
+		if item.Description != "" {
+			description.String = item.Description
+			description.Valid = true
+		}
+		t, err := time.Parse(time.RFC1123Z, item.PubDate)
+		if err != nil {
+			log.Printf("Couldn't parse Date %s with error %v", item.PubDate, err)
+			continue
+		}
+		_, err = db.CreatePosts(context.Background(), database.CreatePostsParams{
+			ID:          uuid.New(),
+			CreatedAt:   time.Now().UTC(),
+			UpdatedAt:   time.Now().UTC(),
+			Title:       item.Title,
+			Description: description,
+			PublishedAt: t,
+			Url:         item.Link,
+			FeedID:      feed.ID,
+		})
+		if err != nil {
+			if strings.Contains(err.Error(), "duplicate key") {
+				continue
+			}
+			log.Println("Failed to create Post with err:", err)
+		}
 	}
 	log.Printf("Feed %s collected, %v posts found", feed.Name, len(rssFeed.Channel.Item))
 }
