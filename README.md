@@ -59,7 +59,7 @@ go mod tidy
 **Locally**:
 
 ```bash
-goose postgres "postgres://postgres:postgres@localhost:5432/rss_db?sslmode=disable" up
+goose postgres "postgres://postgres:postgres@localhost:5432/rssAggregator?sslmode=disable" up
 ```
 
 ---
@@ -77,7 +77,7 @@ services:
     ports: ["8080:8080"]
     environment:
       - PORT=8080
-      - DB_URL=postgres://postgres:postgres@db:5432/rss_db?sslmode=disable
+      - DB_URL=postgres://postgres:postgres@db:5432/rssAggregator?sslmode=disable
 
   db:
     image: postgres:15
@@ -86,7 +86,7 @@ services:
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: rss_db
+      POSTGRES_DB: rssAggregator
 
 volumes:
   postgres-data:
